@@ -846,11 +846,12 @@ void UnifiedTasksModel::removeSlotAt(int unifiedRow)
         it.appId.clear();
         it.appName.clear();
         const QModelIndex idx = index(unifiedRow);
-        // Slot -> Stray conversion flips IsEmptySlotRole / SlotIdxRole (Stray gets -1).
-        Q_EMIT dataChanged(idx, idx,
-                           QVector<int>{SlotIdxRole, IsEmptySlotRole,
-                                        SlotLauncherUrlRole, SlotAppIdRole,
-                                        SlotBgColorRole, SlotBarColorRole});
+        // Slot<->Stray is an identity flip — emit without a role list so every
+        // forwarded property (IsWindow, IsActive, IsLauncher, decoration,
+        // display, AppId/Name/Pid, WinIdList, HasLauncher, MimeType, …) gets
+        // re-read by QML in addition to the slot-specific extras. Defensive
+        // pattern for any "kind change" mutation, matching bindStrayToSlot.
+        Q_EMIT dataChanged(idx, idx);
     } else {
         beginRemoveRows(QModelIndex(), unifiedRow, unifiedRow);
         m_items.remove(unifiedRow);
@@ -938,15 +939,20 @@ bool UnifiedTasksModel::bindStrayToSlot(int slotRow, int strayRow)
 
     const int newSlotRow = (strayRow < slotRow) ? slotRow - 1 : slotRow;
 
-    // All items from strayRow onwards had their row() (and therefore
-    // SlotIdxRole) decremented by the removal. Additionally the slot itself
-    // just transitioned empty -> bound, so its IsEmptySlotRole flipped too.
+    // Items from strayRow onwards had their row() (and therefore SlotIdxRole)
+    // decremented by the removal — notify only that role for efficiency.
     if (strayRow < m_items.size()) {
         Q_EMIT dataChanged(index(strayRow), index(m_items.size() - 1),
                            QVector<int>{SlotIdxRole});
     }
+    // The newly-bound slot changes almost every forwarded role (IsActive,
+    // IsWindow, decoration, display, AppId, AppName, AppPid, WinIdList,
+    // LauncherUrl, …) because data() now forwards to the source row instead
+    // of synthesising launcher-like fallbacks. Emit without a role list so
+    // QML re-reads every property — otherwise isEmptySlot / IsWindow cache
+    // stays stale and left-clicks hit the spawn path instead of activation.
     const QModelIndex si = index(newSlotRow);
-    Q_EMIT dataChanged(si, si, QVector<int>{IsEmptySlotRole, TaskIdxRole});
+    Q_EMIT dataChanged(si, si);
     Q_EMIT slotsConfigChanged();
     return true;
 }
