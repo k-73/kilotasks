@@ -846,11 +846,20 @@ void UnifiedTasksModel::removeSlotAt(int unifiedRow)
         it.appId.clear();
         it.appName.clear();
         const QModelIndex idx = index(unifiedRow);
-        Q_EMIT dataChanged(idx, idx);
+        // Slot -> Stray conversion flips IsEmptySlotRole / SlotIdxRole (Stray gets -1).
+        Q_EMIT dataChanged(idx, idx,
+                           QVector<int>{SlotIdxRole, IsEmptySlotRole,
+                                        SlotLauncherUrlRole, SlotAppIdRole,
+                                        SlotBgColorRole, SlotBarColorRole});
     } else {
         beginRemoveRows(QModelIndex(), unifiedRow, unifiedRow);
         m_items.remove(unifiedRow);
         endRemoveRows();
+        // Everything AFTER the removed row has SlotIdxRole = row() decremented.
+        if (unifiedRow < m_items.size()) {
+            Q_EMIT dataChanged(index(unifiedRow), index(m_items.size() - 1),
+                               QVector<int>{SlotIdxRole});
+        }
     }
     Q_EMIT slotsConfigChanged();
 }
@@ -868,6 +877,12 @@ void UnifiedTasksModel::duplicateSlotAt(int unifiedRow)
     beginInsertRows(QModelIndex(), insertAt, insertAt);
     m_items.insert(insertAt, copy);
     endInsertRows();
+
+    // SlotIdxRole for every item AFTER the insertion shifted by +1. Refresh QML.
+    if (insertAt + 1 < m_items.size()) {
+        Q_EMIT dataChanged(index(insertAt + 1), index(m_items.size() - 1),
+                           QVector<int>{SlotIdxRole});
+    }
     Q_EMIT slotsConfigChanged();
 }
 
@@ -922,8 +937,16 @@ bool UnifiedTasksModel::bindStrayToSlot(int slotRow, int strayRow)
     endRemoveRows();
 
     const int newSlotRow = (strayRow < slotRow) ? slotRow - 1 : slotRow;
+
+    // All items from strayRow onwards had their row() (and therefore
+    // SlotIdxRole) decremented by the removal. Additionally the slot itself
+    // just transitioned empty -> bound, so its IsEmptySlotRole flipped too.
+    if (strayRow < m_items.size()) {
+        Q_EMIT dataChanged(index(strayRow), index(m_items.size() - 1),
+                           QVector<int>{SlotIdxRole});
+    }
     const QModelIndex si = index(newSlotRow);
-    Q_EMIT dataChanged(si, si);
+    Q_EMIT dataChanged(si, si, QVector<int>{IsEmptySlotRole, TaskIdxRole});
     Q_EMIT slotsConfigChanged();
     return true;
 }
@@ -1000,6 +1023,15 @@ bool UnifiedTasksModel::moveItem(int from, int to)
     if (!beginMoveRows(QModelIndex(), from, from, QModelIndex(), destIndex)) return false;
     m_items.move(from, to);
     endMoveRows();
+
+    // SlotIdxRole and TaskIdxRole for items between from/to have shifted. QML
+    // caches role data across rowsMoved (Qt only repositions delegates), so we
+    // must explicitly notify or a click on a moved empty slot spawns into the
+    // wrong row. Emit for the whole range — cheap with <20 tasks.
+    if (!m_items.isEmpty()) {
+        Q_EMIT dataChanged(index(0), index(m_items.size() - 1),
+                           QVector<int>{SlotIdxRole, TaskIdxRole});
+    }
     Q_EMIT slotsConfigChanged();
     return true;
 }
