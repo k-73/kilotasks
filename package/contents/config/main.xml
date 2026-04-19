@@ -8,7 +8,7 @@
   <group name="General">
     <entry name="showOnlyCurrentScreen" type="Bool">
       <label>Whether to show only window tasks that are on the same screen as the widget.</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="showOnlyCurrentDesktop" type="Bool">
       <label>Whether to only show tasks that are on the current virtual desktop.</label>
@@ -28,7 +28,7 @@
     </entry>
     <entry name="groupingStrategy" type="Int">
       <label>How tasks are grouped: 0 = Do Not Group (each window = own icon), 1 = By Program Name.</label>
-      <default>1</default>
+      <default>0</default>
       <min>0</min>
       <max>1</max>
     </entry>
@@ -79,7 +79,7 @@
     </entry>
     <entry name="wheelSkipMinimized" type="Bool">
       <label>Whether to skip minimized tasks when switching between them using the mouse wheel.</label>
-      <default>true</default>
+      <default>false</default>
     </entry>
     <entry name="highlightWindows" type="Bool">
       <label>Whether to request the window manager highlight windows when hovering corresponding task tooltips.</label>
@@ -103,7 +103,7 @@
             <choice name="ToggleGrouping"/>
             <choice name="BringToCurrentDesktop"/>
       </choices>
-      <default>2</default>
+      <default>Close</default>
     </entry>
     <entry name="indicateAudioStreams" type="Bool">
       <label>Whether to indicate applications that are playing audio including an option to mute them.</label>
@@ -136,14 +136,14 @@
 
     <entry name="iconGap" type="Int">
       <label>Gap in px between adjacent task delegates (real Flow spacing, not delegate padding).</label>
-      <default>0</default>
+      <default>2</default>
       <min>0</min>
       <max>24</max>
     </entry>
 
     <entry name="cornerRadius" type="Int">
       <label>Legacy shared overlay corner radius. Kept for backwards compat; new UI uses per-state entries below.</label>
-      <default>0</default>
+      <default>2</default>
       <min>0</min>
       <max>16</max>
     </entry>
@@ -162,7 +162,7 @@
     </entry>
     <entry name="emptySlotCornerRadius" type="Int">
       <label>Corner radius for EMPTY-slot overlay. 0 = flat.</label>
-      <default>0</default>
+      <default>1</default>
       <min>0</min>
       <max>16</max>
     </entry>
@@ -176,7 +176,7 @@
 
     <entry name="iconSize" type="Int">
       <label>Explicit icon size in px. 0 = auto (fit the available delegate area).</label>
-      <default>0</default>
+      <default>28</default>
       <min>0</min>
       <max>128</max>
     </entry>
@@ -189,7 +189,7 @@
 
     <entry name="activeTintOpacity" type="Int">
       <label>Opacity percent of the active-window tint (0-60).</label>
-      <default>18</default>
+      <default>30</default>
       <min>0</min>
       <max>60</max>
     </entry>
@@ -201,7 +201,7 @@
 
     <entry name="runningTintOpacity" type="Int">
       <label>Opacity percent for the inactive-window background tint. 0 = disabled.</label>
-      <default>0</default>
+      <default>41</default>
       <min>0</min>
       <max>100</max>
     </entry>
@@ -252,7 +252,7 @@
     </entry>
     <entry name="bgStyleInactive" type="Int">
       <label>Background style for INACTIVE windows (running, not focused): 0 = None, 1 = Solid, 2 = Glass, 3 = Gradient.</label>
-      <default>0</default>
+      <default>2</default>
       <min>0</min>
       <max>3</max>
     </entry>
@@ -266,17 +266,17 @@
     <!-- Icon drop shadow -->
     <entry name="iconShadowEnabled" type="Bool">
       <label>Render a drop shadow under task icons.</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="iconShadowBlur" type="Int">
       <label>Shadow blur radius in px.</label>
-      <default>8</default>
+      <default>16</default>
       <min>0</min>
       <max>24</max>
     </entry>
     <entry name="iconShadowOpacity" type="Int">
       <label>Shadow opacity percent (0-100).</label>
-      <default>50</default>
+      <default>100</default>
       <min>0</min>
       <max>100</max>
     </entry>
@@ -303,7 +303,7 @@
          for inactive / empty slot when the respective "show" flag is on. -->
     <entry name="taskBorderActiveEnabled" type="Bool">
       <label>Draw border around the ACTIVE window cell.</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="taskBorderInactiveEnabled" type="Bool">
       <label>Draw border around INACTIVE window cells.</label>
@@ -339,7 +339,7 @@
     </entry>
     <entry name="activeBorderOpacity" type="Int">
       <label>Opacity percent for the ACTIVE-window border.</label>
-      <default>100</default>
+      <default>30</default>
       <min>10</min>
       <max>100</max>
     </entry>
@@ -357,15 +357,15 @@
     </entry>
     <entry name="taskBorderActiveColor" type="String">
       <label>Border color for the active window. Empty = theme highlight.</label>
-      <default></default>
+      <default>#1abc9c</default>
     </entry>
     <entry name="taskBorderInactiveColor" type="String">
       <label>Border color for inactive windows. Empty = theme textColor (subtle).</label>
-      <default></default>
+      <default>#3498db</default>
     </entry>
     <entry name="taskBorderEmptySlotColor" type="String">
       <label>Border color for empty slots. Empty = theme textColor (subtle).</label>
-      <default></default>
+      <default>#000000</default>
     </entry>
 
     <!-- Inactive-window tint color (inactive running). Reuses runningTintColor for
@@ -383,7 +383,7 @@
     <!-- Animation speed override for task transitions (opacity/colour fades). -->
     <entry name="animationSpeed" type="Int">
       <label>Transition animation duration in ms. 0 = instant.</label>
-      <default>140</default>
+      <default>80</default>
       <min>0</min>
       <max>600</max>
     </entry>

@@ -398,6 +398,38 @@ int UnifiedTasksModel::findBoundSlot(const QModelIndex &sourceIdx) const
     return -1;
 }
 
+// Pick the first empty slot whose identity matches (appId + launcherUrl). Used by
+// the pending-spawn binder so row shifts (moveItem, reconcileStrays, duplicate,
+// unbind) between the spawn click and the window's arrival are transparent: the
+// binder does not hold a raw m_items index — it holds the slot's logical key.
+//
+// `hintRow` is a NON-AUTHORITATIVE preference: when the user has multiple empty
+// slots of the same app (duplicates), the hint keeps the bind on the slot the
+// user actually clicked instead of always landing on the first one in order.
+// The hint is only honoured when it still points to a valid empty slot with
+// matching identity — otherwise we transparently fall back to first-matching.
+int UnifiedTasksModel::findEmptySlotMatching(const QString &appId, const QString &launcherUrl, int hintRow) const
+{
+    if (appId.isEmpty()) return -1;
+
+    auto slotMatches = [&](int i) {
+        if (i < 0 || i >= m_items.size()) return false;
+        const Item &it = m_items[i];
+        if (it.kind != Kind::Slot) return false;
+        if (it.boundTask.isValid()) return false;
+        if (it.appId != appId) return false;
+        if (!launcherUrl.isEmpty() && !it.launcherUrl.isEmpty()
+            && it.launcherUrl != launcherUrl) return false;
+        return true;
+    };
+
+    if (hintRow >= 0 && slotMatches(hintRow)) return hintRow;
+    for (int i = 0; i < m_items.size(); ++i) {
+        if (slotMatches(i)) return i;
+    }
+    return -1;
+}
+
 void UnifiedTasksModel::expirePendingSpawns()
 {
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
@@ -414,11 +446,18 @@ void UnifiedTasksModel::tryBindPendingSpawns(int first, int last)
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
 
     auto applyBind = [&](int pendingIdx, const QModelIndex &si) {
-        const int unifiedRow = m_pending[pendingIdx].unifiedRow;
+        const QString pendAppId   = m_pending[pendingIdx].appId;
+        const QString pendLauncher = m_pending[pendingIdx].slotLauncherUrl;
+        const int     pendHint     = m_pending[pendingIdx].hintRow;
         m_pending.remove(pendingIdx);
-        if (unifiedRow < 0 || unifiedRow >= m_items.size()) return;
+
+        // Late lookup of the target slot. Survives any number of
+        // moveItem/removeSlotAt/duplicateSlotAt calls between click and bind.
+        // The hint is the original click row — honoured if still valid.
+        const int unifiedRow = findEmptySlotMatching(pendAppId, pendLauncher, pendHint);
+        if (unifiedRow < 0) return; // no matching empty slot left — window becomes a stray via the regular insert path
+
         Item &it = m_items[unifiedRow];
-        if (it.kind != Kind::Slot || it.boundTask.isValid()) return;
         it.boundTask = QPersistentModelIndex(si);
         const QModelIndex i = index(unifiedRow);
         Q_EMIT dataChanged(i, i);
@@ -434,6 +473,11 @@ void UnifiedTasksModel::tryBindPendingSpawns(int first, int last)
     for (int r = first; r <= last; ++r) {
         const QModelIndex si = m_source->index(r, 0);
         if (!si.isValid()) continue;
+
+        // Skip source rows we already own as stray or bound slot: a late-arriving
+        // layoutChanged-driven rebind must not re-bind a row that's already tracked.
+        if (findStrayRow(si) >= 0) continue;
+        if (findBoundSlot(si) >= 0) continue;
 
         const qint64 windowPid = (pidRole >= 0) ? m_source->data(si, pidRole).toLongLong() : 0;
         const QString windowAppId = appIdFromSource(si);
@@ -534,6 +578,14 @@ void UnifiedTasksModel::onSourceRowsInserted(const QModelIndex &parent, int firs
         m_items.append(pending);
         endInsertRows();
     }
+
+    // Source insertion before the row of any existing persistent index shifts
+    // that index by +1. Notify all surviving items so their cached TaskIdxRole
+    // value refreshes in QML (symmetrical with onSourceRowsRemoved).
+    if (!m_items.isEmpty()) {
+        Q_EMIT dataChanged(index(0), index(m_items.size() - 1),
+                           QVector<int>{TaskIdxRole});
+    }
 }
 
 void UnifiedTasksModel::onSourceRowsRemoved(const QModelIndex &parent, int first, int last)
@@ -553,6 +605,18 @@ void UnifiedTasksModel::onSourceRowsRemoved(const QModelIndex &parent, int first
             const QModelIndex idx = index(i);
             Q_EMIT dataChanged(idx, idx);
         }
+    }
+
+    // Row removal in the source model shifts the row() of every persistent index
+    // that was positioned AFTER the removed range. QPersistentModelIndex tracks
+    // this internally, but our forwarded TaskIdxRole reads are cached by QML
+    // delegates — if we don't announce the change, a click on a surviving slot
+    // still hits the stale source-row index (or a vanished one), and the
+    // activation request targets nothing. Re-emit for every remaining item so
+    // the delegate refreshes its `taskIdx` before the next user interaction.
+    if (!m_items.isEmpty()) {
+        Q_EMIT dataChanged(index(0), index(m_items.size() - 1),
+                           QVector<int>{TaskIdxRole});
     }
 }
 
@@ -657,8 +721,18 @@ void UnifiedTasksModel::reconcileStrays()
         }
     }
 
-    // Add strays for source rows not yet covered by any item.
     const int n = m_source->rowCount();
+
+    // Retry pending-spawn binding across the whole visible source range BEFORE
+    // appending strays. Plasma's TasksModel emits layoutChanged on filter
+    // reshuffles (screen, virtual-desktop, activity); rows that were filtered
+    // out when the user clicked Spawn can reappear here, and we want them to
+    // bind to the click's pending slot instead of becoming a fresh stray.
+    if (!m_pending.isEmpty() && n > 0) {
+        tryBindPendingSpawns(0, n - 1);
+    }
+
+    // Add strays for source rows not yet covered by any item.
     for (int r = 0; r < n; ++r) {
         const QModelIndex si = m_source->index(r, 0);
         if (!si.isValid()) continue;
@@ -673,7 +747,8 @@ void UnifiedTasksModel::reconcileStrays()
         endInsertRows();
     }
 
-    // Refresh role values (filter changes may flip things like IsActive indirectly).
+    // Refresh role values (filter changes may flip things like IsActive,
+    // TaskIdxRole after QPersistentModelIndex shifts, etc.).
     if (!m_items.isEmpty()) {
         Q_EMIT dataChanged(index(0), index(m_items.size() - 1));
     }
@@ -814,9 +889,10 @@ void UnifiedTasksModel::activateOrSpawnSlotAt(int unifiedRow)
 
     expirePendingSpawns();
     PendingSpawn p;
-    p.unifiedRow = unifiedRow;
     p.pid = pid;
     p.appId = it.appId;
+    p.slotLauncherUrl = it.launcherUrl;
+    p.hintRow = unifiedRow;
     p.ts = QDateTime::currentMSecsSinceEpoch();
     m_pending.append(p);
 }

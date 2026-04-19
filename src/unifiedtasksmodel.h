@@ -122,11 +122,20 @@ private:
         QPersistentModelIndex strayTask;     // points to sourceModel row
     };
 
+    // Binding target is resolved LATE (at bind time) from a stable slot key
+    // instead of a raw m_items index. This is immune to row shifts caused by
+    // moveItem / removeSlotAt / duplicateSlotAt / bindStrayToSlot / reconcile
+    // happening between the click and the new window appearing in source.
     struct PendingSpawn {
-        int unifiedRow;     // row of the slot that spawned
-        qint64 pid;         // child PID captured at spawn time; primary match key
-        QString appId;      // fallback match for apps that daemonize (Firefox etc.)
-        qint64 ts;          // enqueue epoch (ms) for TTL
+        qint64 pid;               // child PID captured at spawn time; primary window-match key
+        QString appId;            // = slot.appId; matches the new window's AppId
+        QString slotLauncherUrl;  // = slot.launcherUrl; disambiguates duplicate slots of same app
+        int hintRow;              // unified row of the slot at spawn time — non-authoritative hint
+                                  //   only, preferred if still empty/matching at bind time. When
+                                  //   the user has multiple empty slots for the same app and
+                                  //   clicks one of them, the hint keeps the bind on the clicked
+                                  //   slot instead of the first matching slot in row order.
+        qint64 ts;                // enqueue epoch (ms) for TTL
     };
 
     void connectSource();
@@ -136,6 +145,7 @@ private:
     bool shouldTrackSource(const QModelIndex &si) const;
     int findStrayRow(const QModelIndex &sourceIdx) const;           // unified row holding this source row as stray
     int findBoundSlot(const QModelIndex &sourceIdx) const;          // unified row holding this source row as bound slot
+    int findEmptySlotMatching(const QString &appId, const QString &launcherUrl, int hintRow = -1) const;
     void tryBindPendingSpawns(int first, int last);
     void expirePendingSpawns();
 
