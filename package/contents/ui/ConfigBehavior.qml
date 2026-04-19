@@ -31,7 +31,9 @@ Item {
     property alias cfg_showOnlyMinimized: showOnlyMinimized.checked
     property alias cfg_minimizeActiveTaskOnClick: minimizeActive.checked
     property alias cfg_unhideOnAttention: unhideOnAttention.checked
-    property alias cfg_reverseMode: reverseMode.checked
+    // Driven by two mutually-exclusive radio buttons, so we keep it as a plain
+    // bool and both buttons write to it on click.
+    property bool cfg_reverseMode
 
     TaskManagerApplet.Backend {
         id: backend
@@ -176,13 +178,16 @@ Item {
         }
 
         RadioButton {
+            id: forwardMode
             Kirigami.FormData.label: i18n("New tasks appear:")
-            checked: !reverseMode.checked
+            checked: !cfg_reverseMode
+            // Clicking writes false back to the config — the old version only
+            // read !reverseMode.checked and never notified cfg_reverseMode.
+            onClicked: cfg_reverseMode = false
             text: {
                 if (plasmoid.formFactor === PlasmaCore.Types.Vertical) {
                     return i18n("On the bottom")
                 }
-                // horizontal
                 if (Qt.application.layoutDirection === Qt.LeftToRight) {
                     return i18n("To the right");
                 } else {
@@ -190,17 +195,16 @@ Item {
                 }
             }
             ButtonGroup.group: reverseModeRadioButtonGroup
-            visible: reverseMode.visible
         }
 
         RadioButton {
             id: reverseMode
-            checked: plasmoid.configuration.reverseMode === true
+            checked: cfg_reverseMode
+            onClicked: cfg_reverseMode = true
             text: {
                 if (plasmoid.formFactor === PlasmaCore.Types.Vertical) {
                     return i18n("On the Top")
                 }
-                // horizontal
                 if (Qt.application.layoutDirection === Qt.LeftToRight) {
                     return i18n("To the left");
                 } else {

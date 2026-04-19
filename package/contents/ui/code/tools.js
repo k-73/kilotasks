@@ -99,29 +99,33 @@ function activateNextPrevTask(anchor, next, wheelSkipMinimized, tasks) {
 // Helper: raise and focus a single task. Unminimises it first if needed so the
 // click cannot land on a hidden window (KWin's requestActivate() alone does not
 // unminimise, which is the "I clicked but nothing changed" class of bug).
+// Returns true if the request was dispatched, false if idx was unusable.
 function _raiseAndActivate(tasksModel, idx) {
-    if (!idx || !idx.valid) {
-        tasksModel.requestActivate(idx);
-        return;
-    }
+    if (!idx || !idx.valid) return false;
     const minimised = tasksModel.data(idx, TaskManager.AbstractTasksModel.IsMinimized);
     const hidden    = tasksModel.data(idx, TaskManager.AbstractTasksModel.IsHidden);
     if (minimised || hidden) {
         tasksModel.requestToggleMinimized(idx);
     }
     tasksModel.requestActivate(idx);
+    return true;
 }
 
 function activateTask(index, model, modifiers, task, plasmoid, tasks) {
+    // Hard guards — missing `model` / `tasks` / bad index means the delegate
+    // was torn down mid-click. Drop quietly instead of dereffing undefined.
+    if (!model || !tasks || !tasks.tasksModel) return;
+
     if (modifiers & Qt.ShiftModifier) {
         tasks.tasksModel.requestNewInstance(index);
         return;
     }
-    // Always publish delegate geometry before activating: KWin uses it to
-    // route the window's minimize/restore animation and to anchor focus
-    // feedback. Without it, activation can silently fail on some compositors
-    // when the delegate has not yet been recorded in this position.
-    if (task && task.modelIndex && tasks.backend) {
+    // Publish delegate geometry before activating — KWin uses it to route the
+    // minimize/restore animation and anchor focus feedback. Skip for empty
+    // slots / strays whose modelIndex() is invalid (taskIdx < 0): an invalid
+    // index publish is a silent no-op and risks feeding garbage geometry.
+    if (task && task.modelIndex && tasks.backend
+        && typeof task.hasRealTaskRow === "function" && task.hasRealTaskRow()) {
         tasks.tasksModel.requestPublishDelegateGeometry(task.modelIndex(), tasks.backend.globalRect(task), task);
     }
 

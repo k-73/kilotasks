@@ -31,8 +31,13 @@ Item {
             var step = tasks.vertical ? LayoutManager.taskWidth() : LayoutManager.taskHeight();
             var stripe = Math.ceil(distance / step);
 
+            // Use the unified model count — we're reordering the unified list
+            // (slots + strays), not Plasma's source tasksModel. For a panel
+            // with empty slots the two counts can disagree, and the old code
+            // landed drops on the wrong row.
+            var count = tasks.unifiedModel.rowCount();
             if (stripe === LayoutManager.calculateStripes()) {
-                return tasks.tasksModel.count - 1;
+                return count - 1;
             } else {
                 return stripe * LayoutManager.tasksPerStripe();
             }

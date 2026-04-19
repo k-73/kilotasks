@@ -112,6 +112,8 @@ MouseArea {
     // Single live dialog instance — repeated Edit-slot clicks reuse it instead
     // of racing createObject against the previous dialog's pending destroy().
     property var _activeEditDialog: null
+    property string _activeEditAppId: ""         // snapshotted at open()
+    property string _activeEditLauncherUrl: ""   // — used to cancel dialog if slot disappears
 
     // Deferred opener. ContextMenu dismissal is asynchronous and can steal
     // focus right as we call open(); a small timer pause lets the menu finish
@@ -123,6 +125,37 @@ MouseArea {
         onTriggered: {
             const dlg = tasks._activeEditDialog;
             if (dlg) dlg.open();
+        }
+    }
+
+    // If the slot being edited is removed (or its identity changes) while the
+    // dialog is open, close the dialog — otherwise subsequent Save would
+    // persist preview state onto whatever row ended up at the cached index.
+    // We walk the existing Task delegates and check for any empty-or-bound
+    // slot that still carries the edited (appId, launcherUrl) identity.
+    Connections {
+        target: unifiedModel
+        function onSlotsConfigChanged() {
+            const dlg = tasks._activeEditDialog;
+            if (!dlg || !dlg.visible || !tasks._activeEditAppId) return;
+
+            let stillPresent = false;
+            for (let i = 0; i < taskRepeater.count; ++i) {
+                const t = taskRepeater.itemAt(i);
+                if (!t || t.slotIdx < 0) continue;
+                const mdl = t.m;
+                if (!mdl) continue;
+                if (mdl.slotAppId !== tasks._activeEditAppId) continue;
+                // launcherUrl is a secondary key — require equality only when
+                // the originating slot actually had one (custom-command-only
+                // slots have empty launcherUrl on both sides).
+                if (tasks._activeEditLauncherUrl
+                    && mdl.slotLauncherUrl
+                    && mdl.slotLauncherUrl !== tasks._activeEditLauncherUrl) continue;
+                stillPresent = true;
+                break;
+            }
+            if (!stillPresent) dlg.cancel();
         }
     }
 
@@ -187,11 +220,16 @@ MouseArea {
         }
 
         _activeEditDialog = dlg;
+        _activeEditAppId = appId;
+        _activeEditLauncherUrl = taskItem.m && taskItem.m.slotLauncherUrl
+            ? String(taskItem.m.slotLauncherUrl) : "";
         // Drop the tracked reference as soon as the user closes the dialog so
         // the next Edit-slot click creates a fresh instance.
         dlg.visibleChanged.connect(function () {
             if (!dlg.visible && tasks._activeEditDialog === dlg) {
                 tasks._activeEditDialog = null;
+                tasks._activeEditAppId = "";
+                tasks._activeEditLauncherUrl = "";
             }
         });
 
@@ -563,15 +601,26 @@ MouseArea {
         function onGroupingLauncherUrlBlacklistChanged() {
             tasksModel.groupingLauncherUrlBlacklist = plasmoid.configuration.groupingLauncherUrlBlacklist;
         }
-        function onIconSpacingChanged() {
-            taskList.layout();
+        function onIconSpacingChanged() { taskList.layout(); }
+        function onIconGapChanged()     { taskList.layout(); }
+        function onIconPaddingChanged() { taskList.layout(); }
+        // Live config updates — previously only initial bindings existed, so
+        // toggling these from the settings dialog left the taskbar stale until
+        // plasmashell restart.
+        function onSortingStrategyChanged() {
+            tasksModel.sortMode = tasksModel.sortModeEnumValue(plasmoid.configuration.sortingStrategy);
+            tasksModel.launchInPlace = plasmoid.configuration.sortingStrategy === 1;
+            tasksModel.separateLaunchers = plasmoid.configuration.sortingStrategy !== 1;
         }
-        function onIconGapChanged() {
-            taskList.layout();
+        function onGroupingStrategyChanged() {
+            tasksModel.groupMode = plasmoid.configuration.groupingStrategy === 0
+                ? TaskManager.TasksModel.GroupDisabled
+                : TaskManager.TasksModel.GroupApplications;
         }
-        function onIconPaddingChanged() {
-            taskList.layout();
-        }
+        function onShowOnlyCurrentScreenChanged()   { screenFilterKick.restart(); }
+        function onShowOnlyCurrentDesktopChanged()  { screenFilterKick.restart(); }
+        function onShowOnlyCurrentActivityChanged() { screenFilterKick.restart(); }
+        function onShowOnlyMinimizedChanged()       { screenFilterKick.restart(); }
     }
 
     property Component taskInitComponent: Component {

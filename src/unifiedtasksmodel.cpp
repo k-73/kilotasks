@@ -168,6 +168,15 @@ void UnifiedTasksModel::setSlotsConfig(const QStringList &json)
 
     m_items = slots + m_items;
 
+    // IMPORTANT: empty slots are intentionally kept EMPTY even when a matching
+    // app is already running as a stray. A slot is a user-reserved launch spot
+    // — collapsing it with an unrelated running instance of the same app would
+    // hijack that reservation. Binding only happens from three explicit user
+    // actions:
+    //   1) click on empty slot → spawn + bind via PendingSpawn
+    //   2) drag stray onto empty slot → bindStrayToSlot
+    //   3) Pin from the context menu → addSlotFromSourceRow (stray→slot)
+
     endResetModel();
     Q_EMIT slotsConfigChanged();
 }
@@ -479,6 +488,12 @@ void UnifiedTasksModel::tryBindPendingSpawns(int first, int last)
         if (findStrayRow(si) >= 0) continue;
         if (findBoundSlot(si) >= 0) continue;
 
+        // Only bind pending spawns to real, trackable rows — never to a
+        // startup placeholder or a helper window that lacks WinIdList /
+        // decoration. Otherwise the pending entry is consumed by a phantom
+        // and the actual window shows up later as an orphan stray.
+        if (!shouldTrackSource(si)) continue;
+
         const qint64 windowPid = (pidRole >= 0) ? m_source->data(si, pidRole).toLongLong() : 0;
         const QString windowAppId = appIdFromSource(si);
 
@@ -554,8 +569,13 @@ static qint64 spawnServicePid(const QString &appId)
 
 void UnifiedTasksModel::onSourceRowsInserted(const QModelIndex &parent, int first, int last)
 {
-    Q_UNUSED(parent);
     if (!m_source) return;
+    // Only root-level rows are top-level tasks we care about. With
+    // GroupApplications, children appear under a group-parent row and their
+    // row numbers are local to that parent — treating them as root rows would
+    // bind the wrong window to a slot, and spawn-filtering / stray-tracking
+    // breaks entirely.
+    if (parent.isValid()) return;
 
     // First, attempt to bind pending spawns on the new source rows.
     tryBindPendingSpawns(first, last);
@@ -590,9 +610,13 @@ void UnifiedTasksModel::onSourceRowsInserted(const QModelIndex &parent, int firs
 
 void UnifiedTasksModel::onSourceRowsRemoved(const QModelIndex &parent, int first, int last)
 {
-    Q_UNUSED(parent);
     Q_UNUSED(first);
     Q_UNUSED(last);
+    // Only react to top-level removals. Child-level removals under a
+    // GroupApplications parent are the parent's own concern — they may affect
+    // ChildCount etc. but never invalidate our QPersistentModelIndex pointing
+    // at the parent row.
+    if (parent.isValid()) return;
     // Any stray whose persistent index became invalid should be removed from our list.
     // Bound slots with invalidated indices become empty slots (visible, no task).
     for (int i = m_items.size() - 1; i >= 0; --i) {
@@ -623,11 +647,12 @@ void UnifiedTasksModel::onSourceRowsRemoved(const QModelIndex &parent, int first
 void UnifiedTasksModel::onSourceRowsMoved(const QModelIndex &parent, int start, int end,
                                           const QModelIndex &destination, int row)
 {
-    Q_UNUSED(parent);
     Q_UNUSED(start);
     Q_UNUSED(end);
-    Q_UNUSED(destination);
     Q_UNUSED(row);
+    // Top-level moves only; child moves inside a GroupApplications parent do
+    // not affect our flat view.
+    if (parent.isValid() || destination.isValid()) return;
     // Persistent indices follow moves automatically. Data values may change; re-emit dataChanged.
     if (m_items.isEmpty()) return;
     Q_EMIT dataChanged(index(0), index(m_items.size() - 1));
@@ -636,6 +661,11 @@ void UnifiedTasksModel::onSourceRowsMoved(const QModelIndex &parent, int start, 
 void UnifiedTasksModel::onSourceDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
                                             const QVector<int> &roles)
 {
+    // Child-level data changes under a GroupApplications parent do not affect
+    // our forwarded view directly; the parent row's data will come in its own
+    // signal. Ignoring here avoids misinterpreting child row numbers as root.
+    if (topLeft.parent().isValid() || bottomRight.parent().isValid()) return;
+
     // Split into two passes:
     //   Pass 1 (safe): emit our own dataChanged for rows where tracking state doesn't change.
     //   Pass 2 (structural): any row where the filter result flipped needs add/remove — not
@@ -706,15 +736,21 @@ void UnifiedTasksModel::onSourceLayoutChanged()
 }
 
 // Bring m_items into sync with the current source rows without a full reset.
-// Removes strays whose persistent index went invalid and appends strays for any
+// Removes strays whose source row is invalid OR whose source row is still
+// valid but no longer passes our tracking filter (e.g. SkipTaskbar just got
+// set, WinIdList became empty, AppId got cleared). Appends strays for any
 // source row not already tracked as stray or bound slot. Preserves delegate state.
 void UnifiedTasksModel::reconcileStrays()
 {
+    // Queued: m_source may have been cleared since this was posted. Bail.
     if (!m_source) return;
 
-    // Drop strays whose source row was filtered out or removed.
+    // Drop strays whose source row is gone OR no longer satisfies the filter.
     for (int i = m_items.size() - 1; i >= 0; --i) {
-        if (m_items[i].kind == Kind::Stray && !m_items[i].strayTask.isValid()) {
+        if (m_items[i].kind != Kind::Stray) continue;
+        const bool invalid = !m_items[i].strayTask.isValid();
+        const bool untrackable = !invalid && !shouldTrackSource(QModelIndex(m_items[i].strayTask));
+        if (invalid || untrackable) {
             beginRemoveRows(QModelIndex(), i, i);
             m_items.remove(i);
             endRemoveRows();

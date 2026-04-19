@@ -18,8 +18,8 @@
       <label>Whether to show only tasks that are on the current activity.</label>
       <default>true</default>
     </entry>
-    <entry name="showOnlyMinimized" type="Int">
-      <label>Whether to show only window tasks that are minmized.</label>
+    <entry name="showOnlyMinimized" type="Bool">
+      <label>Whether to show only window tasks that are minimized.</label>
       <default>false</default>
     </entry>
     <entry name="unhideOnAttention" type="Bool">
@@ -188,10 +188,10 @@
     </entry>
 
     <entry name="activeTintOpacity" type="Int">
-      <label>Opacity percent of the active-window tint (0-60).</label>
+      <label>Opacity percent of the active-window tint.</label>
       <default>30</default>
       <min>0</min>
-      <max>60</max>
+      <max>100</max>
     </entry>
 
     <entry name="runningTintColor" type="String">

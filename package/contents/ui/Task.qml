@@ -92,7 +92,7 @@ PlasmaCore.ToolTipArea {
         }
 
         let smartLauncherDescription = "";
-        if (iconBox.active) {
+        if (iconBox.active && task.smartLauncherItem) {
             smartLauncherDescription += i18ncp("@info:tooltip", "There is %1 new message.", "There are %1 new messages.", task.smartLauncherItem.count);
         }
 
@@ -153,7 +153,14 @@ PlasmaCore.ToolTipArea {
 
     onChildCountChanged: {
         if (hasRealTaskRow() && TaskTools.taskManagerInstanceCount < 2 && childCount > previousChildCount) {
-            tasksModel.requestPublishDelegateGeometry(modelIndex(), backend.globalRect(task), task);
+            // Publish next tick — on childCount increase the new window row has
+            // only just been added to the source model, KWin hasn't seen it yet
+            // and a synchronous publish drops the minimise-to-taskbar animation.
+            Qt.callLater(function () {
+                if (task && task.hasRealTaskRow()) {
+                    tasksModel.requestPublishDelegateGeometry(modelIndex(), backend.globalRect(task), task);
+                }
+            });
         }
 
         previousChildCount = childCount;
@@ -192,9 +199,15 @@ PlasmaCore.ToolTipArea {
             return;
         }
         // Create item on demand instead of using Loader to reduce memory consumption,
-        // because only a few applications have audio streams.
+        // because only a few applications have audio streams. Guard every step —
+        // a broken AudioStream.qml must not nuke the whole delegate.
         const component = Qt.createComponent("AudioStream.qml");
-        audioStreamIcon = component.createObject(task);
+        if (component.status === Component.Ready) {
+            audioStreamIcon = component.createObject(task);
+        } else {
+            console.warn("kilotasks: AudioStream.qml failed to load:", component.errorString());
+            audioStreamIcon = null;
+        }
         component.destroy();
     }
     onAudioIndicatorsEnabledChanged: task.hasAudioStreamChanged()
@@ -220,8 +233,16 @@ PlasmaCore.ToolTipArea {
     readonly property int taskIdx: model.taskIdx !== undefined ? model.taskIdx : -1
 
     function modelIndex() {
+        // Popup children are only valid while the group dialog is still live
+        // AND still pointing at the task that parents them. If either is gone
+        // (dialog just closed, parent task destroyed), fall back to an invalid
+        // index — callers already handle that cleanly via `hasRealTaskRow()`.
         if (inPopup) {
-            return tasksModel.makeModelIndex(groupDialog.visualParent.taskIdx, index);
+            if (!tasks.groupDialog || !tasks.groupDialog.visualParent
+                || tasks.groupDialog.visualParent.taskIdx === undefined) {
+                return tasksModel.index(-1, -1);
+            }
+            return tasksModel.makeModelIndex(tasks.groupDialog.visualParent.taskIdx, index);
         }
         // Empty slot: return an invalid index so tasksModel.data() reads return undefined
         // and context menu window-actions hide themselves via their visible checks.
@@ -444,12 +465,17 @@ PlasmaCore.ToolTipArea {
             grabPermissions: PointerHandler.TakeOverForbidden
 
             onActiveChanged: if (active) {
+                // Mark the drag source synchronously so MouseHandler.onDragMove
+                // cannot misread an early move as "hover" while grabToImage is
+                // still async. The image lands a moment later; the ghost just
+                // starts empty for that frame, which is invisible to the user.
+                tasks.dragSource = task;
                 icon.grabToImage((result) => {
-                    if (!dragHandler.active) {
-                        // BUG 466675 grabToImage is async, so avoid updating dragSource when active is false
+                    // BUG 466675: grabToImage is async. Bail on every path that
+                    // could have destroyed the delegate or cancelled the drag.
+                    if (!dragHandler.active || !task || tasks.dragSource !== task) {
                         return;
                     }
-                    tasks.dragSource = task;
                     dragHelper.Drag.imageSource = result.url;
                     dragHelper.Drag.mimeData = backend.generateMimeData(model.MimeType, model.MimeData, model.LauncherUrlWithoutIcon);
                     dragHelper.Drag.active = dragHandler.active;
