@@ -1,0 +1,27 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "mikekilo482@gmail.com",
+                "Name": "kilo"
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "Icons-only task manager fork with extended organization features",
+        "EnabledByDefault": true,
+        "Icon": "preferences-system-windows",
+        "Id": "org.kilo.plasma.kilotasks",
+        "License": "GPL-2.0+",
+        "Name": "Kilo Tasks",
+        "ServiceTypes": [
+            "Plasma/Applet"
+        ],
+        "Version": "0.1",
+        "Website": "https://github.com/kilo/kilotasks"
+    },
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-MainScript": "ui/main.qml",
+    "X-Plasma-Provides": [
+        "org.kde.plasma.multitasking"
+    ]
+}

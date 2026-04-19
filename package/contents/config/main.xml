@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+  <kcfgfile name=""/>
+
+  <group name="General">
+    <entry name="showOnlyCurrentScreen" type="Bool">
+      <label>Whether to show only window tasks that are on the same screen as the widget.</label>
+      <default>false</default>
+    </entry>
+    <entry name="showOnlyCurrentDesktop" type="Bool">
+      <label>Whether to only show tasks that are on the current virtual desktop.</label>
+      <default>true</default>
+    </entry>
+    <entry name="showOnlyCurrentActivity" type="Bool">
+      <label>Whether to show only tasks that are on the current activity.</label>
+      <default>true</default>
+    </entry>
+    <entry name="showOnlyMinimized" type="Int">
+      <label>Whether to show only window tasks that are minmized.</label>
+      <default>false</default>
+    </entry>
+    <entry name="unhideOnAttention" type="Bool">
+      <label>Whether to unhide if a window wants attention.</label>
+      <default>true</default>
+    </entry>
+    <entry name="groupingStrategy" type="Int">
+      <label>How tasks are grouped: 0 = Do Not Group (each window = own icon), 1 = By Program Name.</label>
+      <default>1</default>
+      <min>0</min>
+      <max>1</max>
+    </entry>
+    <entry name="groupedTaskVisualization" type="Enum">
+      <label>What happens when clicking on a grouped task: 0 = cycle through grouped tasks, 1 = try to show tooltips, 2 = try to show present Windows effect, 3 = show textual list (AKA group dialog)</label>
+      <default>0</default>
+    </entry>
+    <entry name="groupPopups" type="Bool">
+      <label>Whether groups are to be reduced to a single task button and expand into a popup or task buttons are grouped on the widget itself.</label>
+      <default>true</default>
+    </entry>
+    <entry name="onlyGroupWhenFull" type="Bool">
+      <label>Whether to group always or only when the widget runs out of space to show additional task buttons comfortably.</label>
+      <default>true</default>
+    </entry>
+    <entry name="groupingAppIdBlacklist" type="StringList">
+      <label>The id's (usually .desktop file names) of applications that should not have their tasks grouped.</label>
+      <default></default>
+    </entry>
+    <entry name="groupingLauncherUrlBlacklist" type="StringList">
+      <label>The launcher URLs (usually .desktop file or executable URLs) of applications that should not have their tasks grouped.</label>
+      <default></default>
+    </entry>
+    <entry name="sortingStrategy" type="Int">
+      <label>How to sort tasks: 0 = Do Not Sort, 1 = Manually, 2 = Alphabetically, 3 = By Desktop, 4 = By Activity</label>
+      <default>1</default>
+    </entry>
+    <entry name="separateLaunchers" type="Bool">
+      <label>Whether launcher tasks are sorted separately at the left side of the widget or can be mixed with other tasks.</label>
+      <default>false</default>
+    </entry>
+    <entry name="maxStripes" type="Int">
+      <label>The maximum number of rows (in a horizontal-orientation containment, i.e. panel) or columns (in a vertical-orientation containment) to layout task buttons in.</label>
+      <default>1</default>
+      <min>1</min>
+    </entry>
+    <entry name="forceStripes" type="Bool">
+      <label>Whether to try and always layout task buttons in as many rows/columns as set via maxStripes.</label>
+      <default>false</default>
+    </entry>
+    <entry name="showToolTips" type="Bool">
+      <label>Whether to show tooltips when hovering task buttons.</label>
+      <default>true</default>
+    </entry>
+    <entry name="wheelEnabled" type="Bool">
+      <label>Whether using the mouse wheel with the mouse pointer above the widget should switch between tasks.</label>
+      <default>true</default>
+    </entry>
+    <entry name="wheelSkipMinimized" type="Bool">
+      <label>Whether to skip minimized tasks when switching between them using the mouse wheel.</label>
+      <default>true</default>
+    </entry>
+    <entry name="highlightWindows" type="Bool">
+      <label>Whether to request the window manager highlight windows when hovering corresponding task tooltips.</label>
+      <default>true</default>
+    </entry>
+    <entry name="launchers" type="StringList">
+      <label>Legacy launcher URLs. Migrated into 'slots' on first load.</label>
+      <default>applications:systemsettings.desktop,applications:org.kde.discover.desktop,preferred://filemanager,preferred://browser</default>
+    </entry>
+    <entry name="slots" type="StringList">
+      <label>Manual slot entries as JSON strings. Each entry: {u: launcherUrl, i: iconName, a: appId, n: appName}. Duplicates allowed; order = on-panel order.</label>
+      <default></default>
+    </entry>
+    <entry name="middleClickAction" type="Enum">
+      <label>What to do on middle-mouse click on a task button.</label>
+      <choices>
+            <choice name="None"/>
+            <choice name="Close"/>
+            <choice name="NewInstance"/>
+            <choice name="ToggleMinimized"/>
+            <choice name="ToggleGrouping"/>
+            <choice name="BringToCurrentDesktop"/>
+      </choices>
+      <default>2</default>
+    </entry>
+    <entry name="indicateAudioStreams" type="Bool">
+      <label>Whether to indicate applications that are playing audio including an option to mute them.</label>
+      <default>true</default>
+    </entry>
+    <entry name="fill" type="Bool">
+      <label>Whether task manager should occupy all available space.</label>
+      <default>true</default>
+    </entry>
+    <entry name="taskHoverEffect" type="Bool">
+      <label>Whether task buttons should change in appearance when the mouse pointer is above them.</label>
+      <default>true</default>
+    </entry>
+    <entry name="maxTextLines" type="Int">
+      <label>The maximum number of text lines to show in a task button. 0 means no limit.</label>
+      <default>0</default>
+    </entry>
+    <entry name="minimizeActiveTaskOnClick" type="Bool">
+      <label>Whether to minimize the currently-active task when clicked. If false, clicking on the currently-active task will do nothing.</label>
+      <default>true</default>
+    </entry>
+    <entry name="reverseMode" type="Bool">
+      <label>Whether to grow the tasks in according to system configuration or opposite to system configuration.</label>
+      <default>false</default>
+    </entry>
+    <entry name="iconSpacing" type="Int">
+      <label>Legacy: multiplier for task delegate margins (0/1/3). Kept for backwards compat; new UI uses iconGap + iconPadding.</label>
+      <default>1</default>
+    </entry>
+
+    <entry name="iconGap" type="Int">
+      <label>Gap in px between adjacent task delegates (real Flow spacing, not delegate padding).</label>
+      <default>0</default>
+      <min>0</min>
+      <max>24</max>
+    </entry>
+
+    <entry name="cornerRadius" type="Int">
+      <label>Legacy shared overlay corner radius. Kept for backwards compat; new UI uses per-state entries below.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>16</max>
+    </entry>
+
+    <entry name="activeCornerRadius" type="Int">
+      <label>Corner radius for the ACTIVE window overlay. 0 = flat.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>16</max>
+    </entry>
+    <entry name="inactiveCornerRadius" type="Int">
+      <label>Corner radius for INACTIVE-window overlays. 0 = flat.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>16</max>
+    </entry>
+    <entry name="emptySlotCornerRadius" type="Int">
+      <label>Corner radius for EMPTY-slot overlay. 0 = flat.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>16</max>
+    </entry>
+
+    <entry name="iconPadding" type="Int">
+      <label>Extra padding in px added around task icons on top of the theme margins.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>12</max>
+    </entry>
+
+    <entry name="iconSize" type="Int">
+      <label>Explicit icon size in px. 0 = auto (fit the available delegate area).</label>
+      <default>0</default>
+      <min>0</min>
+      <max>128</max>
+    </entry>
+
+
+    <entry name="activeTintColor" type="String">
+      <label>Hex color "#rrggbb" for the active-window background tint. Empty = theme highlight color.</label>
+      <default></default>
+    </entry>
+
+    <entry name="activeTintOpacity" type="Int">
+      <label>Opacity percent of the active-window tint (0-60).</label>
+      <default>18</default>
+      <min>0</min>
+      <max>60</max>
+    </entry>
+
+    <entry name="runningTintColor" type="String">
+      <label>Hex color "#rrggbb" for background tint on running but not-active windows. Empty = theme highlight.</label>
+      <default></default>
+    </entry>
+
+    <entry name="runningTintOpacity" type="Int">
+      <label>Opacity percent for the inactive-window background tint. 0 = disabled.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
+
+    <entry name="emptySlotTintColor" type="String">
+      <label>Hex color "#rrggbb" for the empty-slot background tint. Empty = theme highlight.</label>
+      <default></default>
+    </entry>
+
+    <entry name="emptySlotTintOpacity" type="Int">
+      <label>Opacity percent for the empty-slot background tint. 0 = disabled.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
+
+    <entry name="attentionBarColor" type="String">
+      <label>Hex color "#rrggbb" for the edge bar when a window demands attention. Empty = theme negativeText.</label>
+      <default></default>
+    </entry>
+
+    <entry name="inactiveIconOpacity" type="Int">
+      <label>Opacity percent for icons that are not the active window (empty slots, bound slots with inactive windows, strays, minimised). 100 = no dimming.</label>
+      <default>100</default>
+      <min>10</min>
+      <max>100</max>
+    </entry>
+
+    <entry name="showActiveBar" type="Bool">
+      <label>Render a thin bar along the outer delegate edge for active / hover / attention states.</label>
+      <default>true</default>
+    </entry>
+
+    <entry name="activeBarThickness" type="Int">
+      <label>Thickness in px of the active-window bar when enabled.</label>
+      <default>2</default>
+      <min>1</min>
+      <max>6</max>
+    </entry>
+
+    <!-- Background styles. Each window state has its own style selector so the
+         active-window background can differ from the inactive-window tint. -->
+    <entry name="bgStyle" type="Int">
+      <label>Background style for the ACTIVE window: 0 = None, 1 = Solid, 2 = Glass, 3 = Gradient.</label>
+      <default>1</default>
+      <min>0</min>
+      <max>3</max>
+    </entry>
+    <entry name="bgStyleInactive" type="Int">
+      <label>Background style for INACTIVE windows (running, not focused): 0 = None, 1 = Solid, 2 = Glass, 3 = Gradient.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>3</max>
+    </entry>
+    <entry name="bgStyleEmptySlot" type="Int">
+      <label>Background style for EMPTY slots: 0 = None, 1 = Solid, 2 = Glass, 3 = Gradient.</label>
+      <default>0</default>
+      <min>0</min>
+      <max>3</max>
+    </entry>
+
+    <!-- Icon drop shadow -->
+    <entry name="iconShadowEnabled" type="Bool">
+      <label>Render a drop shadow under task icons.</label>
+      <default>false</default>
+    </entry>
+    <entry name="iconShadowBlur" type="Int">
+      <label>Shadow blur radius in px.</label>
+      <default>8</default>
+      <min>0</min>
+      <max>24</max>
+    </entry>
+    <entry name="iconShadowOpacity" type="Int">
+      <label>Shadow opacity percent (0-100).</label>
+      <default>50</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
+    <entry name="iconShadowOffsetX" type="Int">
+      <label>Shadow horizontal offset in px (negative = left).</label>
+      <default>0</default>
+      <min>-12</min>
+      <max>12</max>
+    </entry>
+    <entry name="iconShadowOffsetY" type="Int">
+      <label>Shadow vertical offset in px (positive = down). 0 = exactly centred under icon.</label>
+      <default>0</default>
+      <min>-12</min>
+      <max>12</max>
+    </entry>
+
+    <entry name="iconShadowColor" type="String">
+      <label>Hex color "#rrggbb" for the icon drop shadow. Empty = black.</label>
+      <default></default>
+    </entry>
+
+    <!-- Per-cell border. Each state (active / inactive / empty slot) can be toggled
+         independently; color defaults to theme highlight for active and theme textColor
+         for inactive / empty slot when the respective "show" flag is on. -->
+    <entry name="taskBorderActiveEnabled" type="Bool">
+      <label>Draw border around the ACTIVE window cell.</label>
+      <default>false</default>
+    </entry>
+    <entry name="taskBorderInactiveEnabled" type="Bool">
+      <label>Draw border around INACTIVE window cells.</label>
+      <default>false</default>
+    </entry>
+    <entry name="taskBorderEmptySlotEnabled" type="Bool">
+      <label>Draw border around EMPTY slots.</label>
+      <default>false</default>
+    </entry>
+    <entry name="taskBorderThickness" type="Int">
+      <label>Legacy shared border thickness. Kept for backwards compat; new UI uses per-state entries below.</label>
+      <default>1</default>
+      <min>1</min>
+      <max>4</max>
+    </entry>
+    <entry name="activeBorderThickness" type="Int">
+      <label>Border thickness for the ACTIVE window.</label>
+      <default>1</default>
+      <min>1</min>
+      <max>4</max>
+    </entry>
+    <entry name="inactiveBorderThickness" type="Int">
+      <label>Border thickness for INACTIVE windows.</label>
+      <default>1</default>
+      <min>1</min>
+      <max>4</max>
+    </entry>
+    <entry name="emptySlotBorderThickness" type="Int">
+      <label>Border thickness for EMPTY slots.</label>
+      <default>1</default>
+      <min>1</min>
+      <max>4</max>
+    </entry>
+    <entry name="activeBorderOpacity" type="Int">
+      <label>Opacity percent for the ACTIVE-window border.</label>
+      <default>100</default>
+      <min>10</min>
+      <max>100</max>
+    </entry>
+    <entry name="inactiveBorderOpacity" type="Int">
+      <label>Opacity percent for INACTIVE-window borders.</label>
+      <default>100</default>
+      <min>10</min>
+      <max>100</max>
+    </entry>
+    <entry name="emptySlotBorderOpacity" type="Int">
+      <label>Opacity percent for EMPTY-slot borders.</label>
+      <default>100</default>
+      <min>10</min>
+      <max>100</max>
+    </entry>
+    <entry name="taskBorderActiveColor" type="String">
+      <label>Border color for the active window. Empty = theme highlight.</label>
+      <default></default>
+    </entry>
+    <entry name="taskBorderInactiveColor" type="String">
+      <label>Border color for inactive windows. Empty = theme textColor (subtle).</label>
+      <default></default>
+    </entry>
+    <entry name="taskBorderEmptySlotColor" type="String">
+      <label>Border color for empty slots. Empty = theme textColor (subtle).</label>
+      <default></default>
+    </entry>
+
+    <!-- Inactive-window tint color (inactive running). Reuses runningTintColor for
+         backwards compat but labelled clearly in the UI. -->
+
+    <!-- Icon saturation override (0-100). 100 = full saturation. Lower values
+         desaturate inactive icons for a calmer look. -->
+    <entry name="inactiveIconSaturation" type="Int">
+      <label>Saturation percent of inactive icons. 100 = full colour.</label>
+      <default>100</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
+
+    <!-- Animation speed override for task transitions (opacity/colour fades). -->
+    <entry name="animationSpeed" type="Int">
+      <label>Transition animation duration in ms. 0 = instant.</label>
+      <default>140</default>
+      <min>0</min>
+      <max>600</max>
+    </entry>
+
+    <!-- Hover effect separate from hover bar state -->
+    <entry name="hoverTintEnabled" type="Bool">
+      <label>Apply the background tint on hover, not just on active.</label>
+      <default>true</default>
+    </entry>
+
+    <entry name="hoverTintOpacity" type="Int">
+      <label>Hover tint intensity as a percentage of the active tint opacity. 100 = match, 55 = softer (default).</label>
+      <default>55</default>
+      <min>10</min>
+      <max>100</max>
+    </entry>
+
+    <entry name="hoverTintColor" type="String">
+      <label>Hex color "#rrggbb" used for the hover tint. Empty = reuse the active-window tint colour.</label>
+      <default></default>
+    </entry>
+  </group>
+
+</kcfg>
+

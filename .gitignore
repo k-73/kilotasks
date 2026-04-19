@@ -1,0 +1,17 @@
+build/
+*.o
+*.so
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CMakeLists.txt.user*
+.cache/
+compile_commands.json
+*.autosave
+*.qmlc
+*.jsc
